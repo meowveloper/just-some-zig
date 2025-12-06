@@ -1,44 +1,47 @@
 const std: type = @import("std");
 const Allocator: type = std.mem.Allocator;
 
-pub const Stack: type = struct {
-    items: []u32,
-    capacity: usize,
-    length: usize,
-    allocator: Allocator,
+pub fn Stack (comptime T: type) type {
+    return struct {
+        items: []T,
+        capacity: usize,
+        length: usize,
+        allocator: Allocator,
+        const Self = @This();
 
-    pub fn init(allocator: Allocator, capacity: usize) !@This() {
-        var buffer = try allocator.alloc(u32, capacity);
+        pub fn init(allocator: Allocator, capacity: usize) !Stack(T) {
+            var buffer = try allocator.alloc(T, capacity);
 
-        return .{
-            .items = buffer[0..],
-            .capacity = capacity,
-            .length = 0,
-            .allocator = allocator
-        };
-    }
-
-    pub fn push (self: *@This(), val: u32) !void {
-        if ((self.length + 1) > self.capacity) {
-            var new_buffer = try self.allocator.alloc(u32, self.capacity * 2);
-
-            @memcpy(new_buffer[0..self.capacity], self.items);
-            self.allocator.free(self.items);
-            self.items = new_buffer;
-            self.capacity = self.capacity * 2;
+            return .{
+                .items = buffer[0..],
+                .capacity = capacity,
+                .length = 0,
+                .allocator = allocator
+            };
         }
 
-        self.items[self.length] = val;
-        self.length += 1;
-    }
+        pub fn push (self: *Self, val: T) !void {
+            if ((self.length + 1) > self.capacity) {
+                var new_buffer = try self.allocator.alloc(T, self.capacity * 2);
 
-    pub fn pop (self: *@This()) void {
-        if(self.length == 0) return;
-        self.items[self.length - 1] = undefined;
-        self.length -= 1;
-    }
+                @memcpy(new_buffer[0..self.capacity], self.items);
+                self.allocator.free(self.items);
+                self.items = new_buffer;
+                self.capacity = self.capacity * 2;
+            }
 
-    pub fn deinit(self: *@This()) void {
-        self.allocator.free(self.items);
-    }
-};
+            self.items[self.length] = val;
+            self.length += 1;
+        }
+
+        pub fn pop (self: *Self) void {
+            if(self.length == 0) return;
+            self.items[self.length - 1] = undefined;
+            self.length -= 1;
+        }
+
+        pub fn deinit(self: *Self) void {
+            self.allocator.free(self.items);
+        }
+    };
+}
